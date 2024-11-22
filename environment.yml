@@ -1,0 +1,25 @@
+name: oblique
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - hdf5
+  - joblib
+  - numpy
+  - pip
+  - pydot
+  - python=3.12
+  - pyyaml
+  - scipy
+  - xgboost
+  - pip:
+      - matplotlib
+      - pandas
+      - pillow
+      - plotly
+      - scikit-learn
+      - seaborn
+      - sympy
+      - ydf==0.8.0
+      - tf-keras
+      - tensorflow
