@@ -1,0 +1,11 @@
+*.txt
+conifer**/**
+plots/**
+prj_**/**
+OutFiles/**
+XGB/**
+YDF/**
+YDFobq/**
+__pycache__/**
+fpu-**/**
+hls4ml_**

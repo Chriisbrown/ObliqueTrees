@@ -3,23 +3,21 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - hdf5
-  - joblib
+  - python==3.11
+  - mlflow
+  - bitstring
+  - matplotlib
+  - mplhep
   - numpy
-  - pip
-  - pydot
-  - python=3.12
-  - pyyaml
+  - pandas
+  - scikit-learn
   - scipy
-  - xgboost
+  - uproot
+  - pytables
+  - pip
+  - pybind11
   - pip:
-      - matplotlib
-      - pandas
-      - pillow
-      - plotly
-      - scikit-learn
-      - seaborn
-      - sympy
-      - ydf==0.8.0
-      - tf-keras
-      - tensorflow
+      - conifer
+      - h5py
+      - xgboost
+      - ydf

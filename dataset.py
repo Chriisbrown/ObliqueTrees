@@ -9,6 +9,9 @@ import json
 
 
 class DataSet:
+    '''
+    DataSet class, wrapper for training datasets handling dataset splitting and quantisation
+    '''
     def __init__(self,  name):
 
         self.name = name
@@ -34,7 +37,9 @@ class DataSet:
         self.labelencoder = None
 
         self.training_features = []
+        self.target_labels = []
 
+        # Config dict for storing information about current dataset, saved alongside the dataset
         self.config_dict = {"name": self.name,
                             "datatransformed": False,
                             "databitted": False,
@@ -45,25 +50,32 @@ class DataSet:
                             "numTrainEvents":0,
                             "numTestEvents":0,
                             "trainingFeatures": None,
+                            "TargetLabels": None,
                             "randomState": self.random_state,
                             "testsize": self.test_size,
                             "save_timestamp": None,
                             "loaded_timestamp": None
                             }
         
+    # Loads a dataset from openml taking the name of the dataset as input
     @classmethod
     def fromOpenML(cls, datasetname):
         openmlclass = cls("open ML dataset: "+datasetname)
         openmlclass.load_data_from_OpenML(datasetname=datasetname)
         return openmlclass
 
+    # Load a dataset from a presaved train and test split
     @classmethod
     def fromTrainTest(cls, filepath):
         traintest = cls("From Train Test")
         traintest.load_test_train_h5(filepath=filepath)
+        traintest.target_labels = traintest.config_dict["targetLabels"]
         traintest.training_features = traintest.config_dict["trainingFeatures"]
         return traintest
     
+    # Load a dataset from sklearn
+    # Sklean dataset loading is in the form of a function, that function is passed to this
+    # class method e.g. sklearn.datasets.load_iris()
     @classmethod
     def fromSklearn(cls,loadfunction):
         sklearn = cls("sklearn dataset: ")
@@ -76,6 +88,7 @@ class DataSet:
         self.X, self.y = data.data, data.target
         self.config_dict["trainingFeatures"] = data['feature_names']
         self.training_features = data['feature_names']
+        self.config_dict["targetLabels"] = list(set(data.target))
 
         self.X = pd.DataFrame(self.X)
         self.y = pd.DataFrame(self.y)
@@ -85,11 +98,13 @@ class DataSet:
         data = fetch_openml(datasetname)
         self.X, self.y = data['data'], data['target']
         self.config_dict["trainingFeatures"] = data['feature_names']
+        self.config_dict["targetLabels"] = list(set(data['target']))
         self.training_features = data['feature_names']
 
     def generate_test_train(self):
         self.labelencoder = LabelEncoder()
         y = self.labelencoder.fit_transform(self.y)
+
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, y, test_size=self.test_size, random_state=self.random_state)
         self.y_train  = pd.DataFrame({'target': self.y_train },dtype=int)
         self.y_test = pd.DataFrame({'target': self.y_test},dtype=int)
@@ -106,12 +121,21 @@ class DataSet:
 
 
     def transform_data(self):
+        '''
+        Template for transforming input data
+        '''
         pass
 
     def bit_data(self, normalise: bool = False):
+        '''
+        Template for quantising input data
+        '''
         pass
 
     def save_test_train_h5(self, filepath):
+        '''
+        Save test and train data split into X and y
+        '''
 
         Path(filepath).mkdir(parents=True, exist_ok=True)
 
@@ -145,6 +169,10 @@ class DataSet:
             print("===Train Test Saved====")
 
     def load_test_train_h5(self, filepath):
+        '''
+        Load test and train data split into X and y
+        '''
+
         X_train_file = Path(filepath+'X_train.h5')
         if X_train_file.is_file():
             X_train_store = pd.HDFStore(filepath+'X_train.h5')
@@ -188,8 +216,11 @@ class DataSet:
             print("No configuration dictionary json file")
 
     def write_hls_file(self, filepath, num_events=10):
-        # self.transform_data()
-        # self.bit_data()
+        '''
+        Save input data as simple txt file for hls testbenches
+        '''
+        self.transform_data()
+        self.bit_data()
         Path(filepath).mkdir(parents=True, exist_ok=True)
         with open(filepath+"input_hls.txt", 'w') as f:
             for i in range(num_events):
