@@ -1,7 +1,7 @@
 from dataset import DataSet
-from model import YDFObliqueModel
+from model import XGBoostClassifierModel
 import matplotlib.pyplot as plt
-import ydf
+import xgboost
 
 # Generate the dataset from the hls4ml_lhc_jets_hlf openML dataset
 # Generate test and train and save them in the unique directory hls4ml_lhc_jets_hlf/
@@ -11,18 +11,20 @@ DataSet.generate_test_train()
 DataSet.save_test_train_h5('hls4ml_lhc_jets_hlf/')
 
 # Create the model and give it a unique name and saving directory, plots and model files will be saved here
-ydfmodel = YDFObliqueModel("ydfmodel","YDFtest/")
+xgboostmodel = XGBoostClassifierModel("xgboostmodel","XGboosttest/")
 # Load the previously saved datset
-ydfmodel.load_data_fromTrainTest('hls4ml_lhc_jets_hlf/')
+xgboostmodel.load_data_fromTrainTest('hls4ml_lhc_jets_hlf/')
 # Train and save to the directory
-ydfmodel.train()
-ydfmodel.save()
+xgboostmodel.train()
+xgboostmodel.save()
 # Load the model (not necessary here but as an example) using the unique name and directory
-ydfmodel.load("ydfmodel","YDFtest/")
+xgboostmodel.load("xgboostmodel","xgboosttest/")
 # Predict on the test dataset
-ydfmodel.test()
+xgboostmodel.test()
+# Synthesize the model
+xgboostmodel.synth_model()
 # evaluate on the test and generate a ROC plot
-ydfmodel.evaluate()
+xgboostmodel.evaluate()
 
 # Hyperparameter scan of the model across the X_train dataset, trials can be set depending on how big a scan is needed
-ydfmodel.tune(n_trials=1)
+xgboostmodel.tune(n_trials=1)

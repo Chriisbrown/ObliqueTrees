@@ -8,12 +8,13 @@ from dataset import DataSet
 import plotting
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
-from tensorflow.keras.utils import to_categorical
 import ydf
 import xgboost as xgb
 import scipy.stats as stats
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
+import conifer
+
 
 
 class ClassifierModel:
@@ -81,11 +82,36 @@ class ClassifierModel:
         Plot the reciever operating characteristic curve
         '''
         print("Accuracy: {}".format(accuracy_score(self.DataSet.y_test, np.argmax(self.y_predict,axis=1))))
-        y_test_cat = to_categorical(self.DataSet.test['target'], self.DataSet.num_classes)
+        categories = self.DataSet.test['target'].astype('category').to_numpy()
+        y_test_cat = np.zeros((len(self.DataSet.test['target']),max(categories)+1))
+        for i in range(len(categories)):
+            y_test_cat[i][categories[i]] = 1
+        print(y_test_cat)
         plt.figure(figsize=(9, 9))
         
         _ = plotting.makeRoc(y_test_cat, self.y_predict,self.target_labels, name=self.name )
         plt.savefig(self.filepath + "roc.png")
+        
+    def evaluate_synth(self):
+        print(self.DataSet.X_test.to_numpy())
+        self.y_cpp_predict = self.cpp_model.decision_function(self.DataSet.X_test.to_numpy())
+        self.y_hls_predict = self.hls_model.decision_function(self.DataSet.X_test.to_numpy())
+        
+        print("YDF Accuracy: {}".format(accuracy_score(self.DataSet.y_test, np.argmax(self.y_predict,axis=1))))
+        print("CPP Accuracy: {}".format(accuracy_score(self.DataSet.y_test, np.argmax(self.y_cpp_predict,axis=1))))
+        print("HLS Accuracy: {}".format(accuracy_score(self.DataSet.y_test, np.argmax(self.y_hls_predict ,axis=1))))
+        
+        
+        categories = self.DataSet.test['target'].astype('category').to_numpy()
+        y_test_cat = np.zeros((len(self.DataSet.test['target']),max(categories)+1))
+        for i in range(len(categories)):
+            y_test_cat[i][categories[i]] = 1
+        print(y_test_cat)
+        plt.figure(figsize=(9, 9))
+        
+        _ = plotting.makeRoc(y_test_cat, self.y_cpp_predict,self.target_labels, name=self.name )
+        plt.savefig(self.filepath + "cpp_roc.png")
+        
 
     def save(self,name):
         pass
@@ -94,7 +120,37 @@ class ClassifierModel:
         pass
 
     def synth_model(self):
-        pass
+        cpp_cfg = conifer.backends.cpp.auto_config()
+        # cpp_cfg["Precision"] = "float"  # Optional float precision.
+        cpp_cfg["OutputDir"] = "prj_cpp"
+        #cpp_cfg['score_precision'] = 'ap_fixed<18,8>'
+        #cpp_cfg['threshold_precision'] = f"ap_fixed<{input_width},{input_integer}>"
+        #cpp_cfg["input_precision"] = f"ap_fixed<{input_width},{input_integer}>"
+        #cpp_cfg["weight_precision"] = weight_type
+        # # Convert the YDF model to a C++ Conifer model.
+        self.cpp_model = conifer.converters.convert_from_ydf(self.model, cpp_cfg)
+        self.cpp_model.compile()
+
+
+        # Create a conifer config
+        hls_cfg = conifer.backends.xilinxhls.auto_config()
+        # hls_cfg["Precision"] = "float"  # Optional float precision.
+        hls_cfg["OutputDir"] = "prj_hls"
+        #hls_cfg['score_precision'] = 'ap_fixed<18,8>'
+        #hls_cfg['threshold_precision'] = f"ap_fixed<{input_width},{input_integer}>"
+        #hls_cfg["input_precision"] = f"ap_fixed<{input_width},{input_integer}>"
+        #hls_cfg["weight_precision"] = weight_type
+
+        # Convert the YDF model to a HLS Conifer model.
+        self.hls_model = conifer.converters.convert_from_ydf(self.model, hls_cfg)
+        self.hls_model.compile()
+
+
+        self.hls_model.build(vsynth=True)
+
+        report = self.hls_model.read_report()
+
+        print(report)
 
 
 class XGBoostClassifierModel(ClassifierModel):
